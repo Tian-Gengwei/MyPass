@@ -58,6 +58,7 @@ fn main() {
             vault::create_group,
             vault::delete_group,
             vault::search_entries,
+            vault::list_vaults,
             // 导入命令
             import::import_keepass,
             import::import_bitwarden,
