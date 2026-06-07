@@ -61,6 +61,7 @@ fn main() {
             // 导入命令
             import::import_keepass,
             import::import_bitwarden,
+            import::import_bitwarden_csv,
             import::import_chrome_csv,
             import::get_supported_import_formats,
             // TOTP 命令
