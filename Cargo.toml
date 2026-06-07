@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/mypass-core",
+    "src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["MyPass Team"]
+license = " "
+
+[workspace.dependencies]
+tokio = { version = "1.40", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+sha2 = "0.10"
+sha1 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+generic-array = "0.14"
+hkdf = "0.12"
+subtle = "2.6"
+zeroize = "1.8"
+rand = "0.8"
+base64 = "0.22"
+chacha20poly1305 = "0.10"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

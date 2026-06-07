@@ -1,0 +1,62 @@
+[package]
+name = "mypass-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+
+argon2 = "0.5"
+chacha20poly1305.workspace = true
+rand.workspace = true
+base64.workspace = true
+sha2.workspace = true
+sha1.workspace = true
+hmac.workspace = true
+directories = "5.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+hex.workspace = true
+generic-array.workspace = true
+hkdf.workspace = true
+subtle.workspace = true
+zeroize.workspace = true
+
+url = "2.5"
+csv = "1.3"
+
+# === WebDAV 同步依赖（纯 Rust，无 ring/nasm 依赖） ===
+# TLS: rustls + aws-lc-rs (Google 维护的 BoringSSL 移植)
+# 注意: aws-lc-sys 仍需编译 C 代码，但可通过预生成绑定避免 bindgen
+rustls = { version = "0.23", default-features = false, features = ["std", "aws_lc_rs", "logging", "tls12"], optional = true }
+aws-lc-rs = { version = "1.10", optional = true }
+rustls-pemfile = { version = "2.1", optional = true }
+# tokio-rustls 提供 rustls 与 tokio 的异步集成
+tokio-rustls = { version = "0.26", optional = true }
+
+# native-tls 兼容性（备选后端，feature-gated）
+native-tls = { version = "0.2", optional = true }
+tokio-native-tls = { version = "0.3", optional = true }
+
+# HTTP 工具
+httparse = "1.9"
+
+[features]
+default = ["sync"]
+sync = ["rustls", "aws-lc-rs", "rustls-pemfile", "tokio-rustls"]
+native-tls-compat = ["dep:native-tls", "dep:tokio-native-tls"]
+
+# 注意：完整的 KDBX 解密需要 `keepass` crate
+# 当前保留依赖，但未在 keepass.rs 中使用
+# 完整实现需要更复杂的集成
+# 建议用户先用 KeePass 导出为 CSV/JSON 格式
+
+[dev-dependencies]
+tempfile = "3.12"
+uuid = { version = "1.0", features = ["v4"] }

@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="MyPass" pattern="file[MyPass]:*/" />
+</component>

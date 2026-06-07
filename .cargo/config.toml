@@ -1,0 +1,52 @@
+# MyPass Cargo 配置
+#
+# 跨平台编译目标配置
+
+# Windows GNU - 主开发目标
+[target.x86_64-pc-windows-gnu]
+# 默认使用 gcc（已在 PATH）
+
+# Windows MSVC
+[target.x86_64-pc-windows-msvc]
+# 使用 MSVC 工具链
+
+# Linux x86_64 glibc
+[target.x86_64-unknown-linux-gnu]
+linker = "gcc"
+
+# Linux aarch64 glibc
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+
+# macOS x86_64
+[target.x86_64-apple-darwin]
+# 使用系统 clang
+
+# macOS aarch64 (Apple Silicon)
+[target.aarch64-apple-darwin]
+# 使用系统 clang
+
+# Android aarch64 (API 21+)
+[target.aarch64-linux-android]
+linker = "aarch64-linux-android21-clang"
+
+# Android armv7 (API 21+)
+[target.armv7-linux-androideabi]
+linker = "armv7a-linux-androideabi21-clang"
+
+# Android x86_64
+[target.x86_64-linux-android]
+linker = "x86_64-linux-android21-clang"
+
+# Android i686
+[target.i686-linux-android]
+linker = "i686-linux-android21-clang"
+
+# 全局配置
+[net]
+# 使用更长的超时来应对慢速网络
+git-fetch-with-cli = true
+
+[build]
+# 减少最终二进制大小
+incremental = true
