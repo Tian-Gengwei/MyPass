@@ -1,0 +1,4 @@
+/target/debug
+/frontend/node_modules/debug
+frontend/node_modules/@babel/helper-compilation-targets/lib/debug.js
+frontend/node_modules/@babel/helper-compilation-targets/lib/debug.js.map
