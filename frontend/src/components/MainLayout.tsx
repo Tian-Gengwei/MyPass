@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useVaultStore, Entry, Group } from '@/stores/vault'
 import { invoke } from '@tauri-apps/api/core'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import {
   Search,
   FolderOpen,
@@ -207,45 +208,58 @@ export function MainLayout({ onLock }: MainLayoutProps) {
 
   const handleImport = async (format: string) => {
     try {
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = format === 'bitwarden_csv' ? '.csv' : format === 'keepass' ? '.kdbx' : '.csv,.json'
+      let selectedPath: string | null = null
       
-      input.onchange = async (e: Event) => {
-        const file = (e.target as HTMLInputElement).files?.[0]
-        if (!file) return
-        
-        const filePath = await (window as any).__TAURI__.dialog.open({
-          multiple: false,
-          filters: format === 'bitwarden_csv' ? [{ name: 'Bitwarden CSV', extensions: ['csv'] }] :
-                    format === 'keepass' ? [{ name: 'KeePass', extensions: ['kdbx'] }] :
-                    [{ name: 'CSV/JSON', extensions: ['csv', 'json'] }]
-        })
-        
-        if (!filePath) return
-        
-        let result
-        switch (format) {
-          case 'bitwarden_csv':
-            result = await invoke('import_bitwarden_csv', { filePath })
-            break
-          case 'bitwarden_json':
-            result = await invoke('import_bitwarden', { filePath })
-            break
-          case 'keepass':
-            result = await invoke('import_keepass', { filePath })
-            break
-          case 'chrome':
-            result = await invoke('import_chrome_csv', { filePath })
-            break
-        }
-        
-        showToast({ message: `Imported ${result} items`, type: 'success' })
-        await loadData()
-        setIsImportDialogOpen(false)
+      switch (format) {
+        case 'bitwarden_csv':
+          selectedPath = await open({
+            multiple: false,
+            filters: [{ name: 'Bitwarden CSV', extensions: ['csv'] }]
+          }) as string | null
+          break
+        case 'bitwarden_json':
+          selectedPath = await open({
+            multiple: false,
+            filters: [{ name: 'Bitwarden JSON', extensions: ['json'] }]
+          }) as string | null
+          break
+        case 'keepass':
+          selectedPath = await open({
+            multiple: false,
+            filters: [{ name: 'KeePass KDBX', extensions: ['kdbx'] }]
+          }) as string | null
+          break
+        case 'chrome':
+          selectedPath = await open({
+            multiple: false,
+            filters: [{ name: 'Chrome CSV', extensions: ['csv'] }]
+          }) as string | null
+          break
       }
       
-      input.click()
+      if (!selectedPath) return
+      
+      let result: number
+      switch (format) {
+        case 'bitwarden_csv':
+          result = await invoke('import_bitwarden_csv', { filePath: selectedPath })
+          break
+        case 'bitwarden_json':
+          result = await invoke('import_bitwarden', { filePath: selectedPath })
+          break
+        case 'keepass':
+          result = await invoke('import_keepass', { filePath: selectedPath })
+          break
+        case 'chrome':
+          result = await invoke('import_chrome_csv', { filePath: selectedPath })
+          break
+        default:
+          throw new Error('Unsupported format')
+      }
+      
+      showToast({ message: `Imported ${result} entries successfully!`, type: 'success' })
+      await loadData()
+      setIsImportDialogOpen(false)
     } catch (err) {
       showToast({ message: `Import failed: ${err}`, type: 'error' })
     }
@@ -253,25 +267,38 @@ export function MainLayout({ onLock }: MainLayoutProps) {
 
   const handleExport = async (format: string) => {
     try {
-      const filePath = await (window as any).__TAURI__.dialog.save({
-        filters: format === 'csv' ? [{ name: 'CSV', extensions: ['csv'] }] :
-                  format === 'json' ? [{ name: 'JSON', extensions: ['json'] }] :
-                  [{ name: 'All Files', extensions: ['csv', 'json'] }]
-      })
+      let defaultPath = 'mypass_export'
+      if (format === 'csv') defaultPath += '.csv'
+      if (format === 'json') defaultPath += '.json'
       
-      if (!filePath) return
-      
-      let result
+      let selectedPath: string | null = null
       switch (format) {
         case 'csv':
-          result = await invoke('export_csv', { filePath })
+          selectedPath = await save({
+            defaultPath,
+            filters: [{ name: 'CSV', extensions: ['csv'] }]
+          }) as string | null
           break
         case 'json':
-          result = await invoke('export_json', { filePath })
+          selectedPath = await save({
+            defaultPath,
+            filters: [{ name: 'JSON', extensions: ['json'] }]
+          }) as string | null
           break
       }
       
-      showToast({ message: `Exported successfully`, type: 'success' })
+      if (!selectedPath) return
+      
+      switch (format) {
+        case 'csv':
+          await invoke('export_csv', { filePath: selectedPath })
+          break
+        case 'json':
+          await invoke('export_json', { filePath: selectedPath })
+          break
+      }
+      
+      showToast({ message: `Exported successfully!`, type: 'success' })
     } catch (err) {
       showToast({ message: `Export failed: ${err}`, type: 'error' })
     }

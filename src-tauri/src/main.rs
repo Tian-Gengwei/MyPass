@@ -3,7 +3,7 @@
 mod commands;
 mod error;
 
-use commands::{vault, import, totp, security, webauthn, biometric, extension, pin, quickkey, sync};
+use commands::{vault, import, export, totp, security, webauthn, biometric, extension, pin, quickkey, sync};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Android 平台日志初始化
@@ -64,6 +64,10 @@ fn main() {
             import::import_bitwarden_csv,
             import::import_chrome_csv,
             import::get_supported_import_formats,
+            // 导出命令
+            export::export_csv,
+            export::export_json,
+            export::get_supported_export_formats,
             // TOTP 命令
             totp::generate_totp,
             totp::verify_totp,
