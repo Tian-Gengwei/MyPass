@@ -2,7 +2,7 @@
 frontend/node_modules/@babel/helper-compilation-targets/lib/debug.js
 frontend/node_modules/@babel/helper-compilation-targets/lib/debug.js.map
 /.clinerules
-/target
+ /target
 /frontend/node_modules/debug
 /target
 *.enc

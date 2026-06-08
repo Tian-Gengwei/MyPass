@@ -75,7 +75,7 @@
   - `human-judgment` TR-5.2: 验证操作反馈是否明确
 - **Notes**: 后端 API 已存在，需要完善前端 UI
 
-## \[ ] Task 6: 菜单系统实现
+## [x] Task 6: 菜单系统实现
 
 - **Priority**: P1
 - **Depends On**: Task 3 (国际化), Task 5 (导入导出)

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { invoke } from '@tauri-apps/api/core'
-import { save } from '@tauri-apps/api/dialog'
+import { save } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { X, Download, FileText, CheckCircle, AlertCircle } from 'lucide-react'
 import { useVaultStore } from '@/stores/vault'
-import { toast } from '@/hooks/use-toast'
+import { useUIStore } from '@/stores/ui'
 
 interface ExportModalProps {
   isOpen: boolean
@@ -22,13 +22,13 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
   const [resultMessage, setResultMessage] = useState('')
   
   const entries = useVaultStore((state) => state.entries)
+  const showToast = useUIStore((s) => s.showToast)
 
   const handleExport = async () => {
     if (!format) {
-      toast({
-        title: t('common.error'),
-        description: t('export.selectFormat'),
-        variant: 'destructive',
+      showToast({
+        message: t('export.selectFormat'),
+        type: 'error',
       })
       return
     }
@@ -58,18 +58,17 @@ export function ExportModal({ isOpen, onClose }: ExportModalProps) {
 
       setResult('success')
       setResultMessage(t('export.success'))
-      toast({
-        title: t('common.success'),
-        description: t('export.success'),
+      showToast({
+        message: t('export.success'),
+        type: 'success',
       })
       
     } catch (error) {
       setResult('error')
       setResultMessage(String(error))
-      toast({
-        title: t('common.error'),
-        description: String(error),
-        variant: 'destructive',
+      showToast({
+        message: String(error),
+        type: 'error',
       })
     } finally {
       setIsExporting(false)

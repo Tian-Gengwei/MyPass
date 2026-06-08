@@ -80,9 +80,14 @@ fn main() {
             security::get_session_status,
             // WebAuthn 命令
             webauthn::webauthn_is_available,
-            webauthn::webauthn_authenticate,
-            webauthn::webauthn_register,
             webauthn::webauthn_get_supported_authenticators,
+            webauthn::webauthn_get_register_options,
+            webauthn::webauthn_complete_registration,
+            webauthn::webauthn_get_authenticate_options,
+            webauthn::webauthn_complete_authentication,
+            webauthn::webauthn_list_passkeys,
+            webauthn::webauthn_remove_passkey,
+            webauthn::webauthn_has_passkey,
             // 生物识别命令
             biometric::check_biometric_available,
             biometric::authenticate_biometric,

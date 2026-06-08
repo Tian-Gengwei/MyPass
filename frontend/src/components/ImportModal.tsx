@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { invoke } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/api/dialog'
+import { open } from '@tauri-apps/plugin-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { X, Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react'
-import { useVaultStore } from '@/stores/vault'
-import { toast } from '@/hooks/use-toast'
+import { useUIStore } from '@/stores/ui'
 
 interface ImportModalProps {
   isOpen: boolean
@@ -23,9 +22,7 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
   const [result, setResult] = useState<'success' | 'error' | null>(null)
   const [resultMessage, setResultMessage] = useState('')
   
-  const setEntries = useVaultStore((state) => state.setEntries)
-  const setGroups = useVaultStore((state) => state.setGroups)
-  const entries = useVaultStore((state) => state.entries)
+  const showToast = useUIStore((s) => s.showToast)
 
   const handleFileSelect = async () => {
     const selected = await open({
@@ -45,10 +42,9 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
   const handleImport = async () => {
     if (!filePath || !format) {
-      toast({
-        title: t('common.error'),
-        description: format ? t('import.selectFile') : t('import.selectFormat'),
-        variant: 'destructive',
+      showToast({
+        message: format ? t('import.selectFile') : t('import.selectFormat'),
+        type: 'error',
       })
       return
     }
@@ -78,18 +74,17 @@ export function ImportModal({ isOpen, onClose }: ImportModalProps) {
 
       setResult('success')
       setResultMessage(t('import.success', { count }))
-      toast({
-        title: t('common.success'),
-        description: t('import.success', { count }),
+      showToast({
+        message: t('import.success', { count }),
+        type: 'success',
       })
       
     } catch (error) {
       setResult('error')
       setResultMessage(String(error))
-      toast({
-        title: t('common.error'),
-        description: String(error),
-        variant: 'destructive',
+      showToast({
+        message: String(error),
+        type: 'error',
       })
     } finally {
       setIsImporting(false)

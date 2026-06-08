@@ -43,6 +43,7 @@ import {
 } from 'lucide-react'
 import { EntryForm } from './EntryForm'
 import { TotpTimer } from './TotpTimer'
+import { SettingsDialog } from './SettingsDialog'
 import { useUIStore } from '@/stores/ui'
 import { useIsMobile } from './MobileLayout'
 
@@ -894,32 +895,10 @@ export function MainLayout({ onLock }: MainLayoutProps) {
       </Dialog>
 
       {/* Settings Dialog */}
-      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle>Settings</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <h3 className="font-medium mb-2">Security</h3>
-              <p className="text-sm text-muted-foreground">
-                Auto-lock and encryption settings coming soon.
-              </p>
-            </div>
-            <div className="p-4 bg-muted/50 rounded-lg opacity-60">
-              <h3 className="font-medium mb-2">Sync</h3>
-              <p className="text-sm text-muted-foreground">
-                Cloud sync feature coming soon.
-              </p>
-            </div>
-            <div className="pt-4 border-t">
-              <p className="text-xs text-muted-foreground">
-                MyPass v1.0.0 · Built with ❤️
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SettingsDialog
+        open={isSettingsDialogOpen}
+        onOpenChange={setIsSettingsDialogOpen}
+      />
 
       {/* Group Dialog */}
       {isGroupDialogOpen && (

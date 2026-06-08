@@ -114,6 +114,41 @@ const resources = {
       language: {
         english: 'English',
         chinese: '简体中文'
+      },
+      settings: {
+        title: 'Settings',
+        security: 'Security',
+        appearance: 'Appearance',
+        sync: 'Sync',
+        about: 'About',
+        general: 'General'
+      },
+      passkey: {
+        title: 'Passkeys',
+        description: 'Use passkeys or hardware security keys to unlock your vault',
+        addPasskey: 'Add Passkey',
+        addHardwareKey: 'Add Hardware Key',
+        noPasskeys: 'No passkeys configured',
+        passkeyAdded: 'Passkey added successfully',
+        passkeyRemoved: 'Passkey removed',
+        removeConfirm: 'Remove this passkey?',
+        unlockWithPasskey: 'Unlock with Passkey',
+        authenticatorPlatform: 'Platform Authenticator',
+        authenticatorCrossPlatform: 'Hardware Security Key',
+        created: 'Created',
+        lastUsed: 'Last used'
+      },
+      security: {
+        autoLock: 'Auto-lock',
+        autoLockAfter: 'Lock after',
+        minutes: 'minutes',
+        biometrics: 'Biometrics',
+        enableBiometrics: 'Enable biometric unlock',
+        pin: 'PIN',
+        setPin: 'Set PIN',
+        changePin: 'Change PIN',
+        pinEnabled: 'PIN unlock enabled',
+        passkeyEnabled: 'Passkey unlock enabled'
       }
     }
   },
@@ -228,6 +263,41 @@ const resources = {
       language: {
         english: 'English',
         chinese: '简体中文'
+      },
+      settings: {
+        title: '设置',
+        security: '安全',
+        appearance: '外观',
+        sync: '同步',
+        about: '关于',
+        general: '通用'
+      },
+      passkey: {
+        title: '通行密钥',
+        description: '使用通行密钥或硬件安全密钥解锁您的金库',
+        addPasskey: '添加通行密钥',
+        addHardwareKey: '添加硬件密钥',
+        noPasskeys: '未配置通行密钥',
+        passkeyAdded: '通行密钥添加成功',
+        passkeyRemoved: '通行密钥已移除',
+        removeConfirm: '确定要移除此通行密钥吗？',
+        unlockWithPasskey: '使用通行密钥解锁',
+        authenticatorPlatform: '平台认证器',
+        authenticatorCrossPlatform: '硬件安全密钥',
+        created: '创建时间',
+        lastUsed: '最后使用'
+      },
+      security: {
+        autoLock: '自动锁定',
+        autoLockAfter: '锁定时间',
+        minutes: '分钟',
+        biometrics: '生物识别',
+        enableBiometrics: '启用生物识别解锁',
+        pin: 'PIN码',
+        setPin: '设置PIN码',
+        changePin: '修改PIN码',
+        pinEnabled: 'PIN码解锁已启用',
+        passkeyEnabled: '通行密钥解锁已启用'
       }
     }
   }
