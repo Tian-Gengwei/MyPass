@@ -22,7 +22,9 @@ use mypass_core::vault::{Entry, Group, Vault};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
+use tauri::AppHandle;
 
+use crate::commands::settings::{resolve_vault_dir_for_listing, resolve_vault_path};
 use crate::commands::vault::state::VaultState;
 
 /// 金库状态全局单例
@@ -143,15 +145,22 @@ pub mod state {
 
 /// 创建新金库
 #[tauri::command]
-pub fn create_vault(request: CreateVaultRequest) -> Result<VaultMetadata, TauriError> {
+pub fn create_vault(
+    request: CreateVaultRequest,
+    app: AppHandle,
+) -> Result<VaultMetadata, TauriError> {
     tracing::info!("Creating vault: {}", request.name);
 
-    let vault_path = if let Some(path) = request.path {
-        PathBuf::from(path)
-    } else {
-        std::env::current_dir()
-            .map_err(|e| TauriError::InvalidPath(e.to_string()))?
-    };
+    let vault_path = resolve_vault_path(&app, request.path.as_deref(), &request.name)?;
+
+    if vault_path.exists() {
+        return Err(TauriError::VaultAlreadyExists);
+    }
+
+    if let Some(parent) = vault_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| TauriError::FileOperationFailed(e.to_string()))?;
+    }
 
     let vault = Vault::create(vault_path.clone(), &request.password, &request.name)
         .map_err(|e| TauriError::VaultCreateFailed(e.to_string()))?;
@@ -392,38 +401,66 @@ pub struct VaultListItem {
 
 /// 获取所有 Vault 列表
 #[tauri::command]
-pub fn list_vaults() -> Result<Vec<VaultListItem>, TauriError> {
+pub fn list_vaults(app: AppHandle) -> Result<Vec<VaultListItem>, TauriError> {
     tracing::info!("Listing vaults");
 
-    let mut vaults = Vec::new();
+    let mut vaults: Vec<VaultListItem> = Vec::new();
+    let mut seen_paths: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-    // 搜索当前目录下的 .vault 目录
-    let current_dir = std::env::current_dir()
-        .map_err(|e| TauriError::InvalidPath(e.to_string()))?;
+    let search_dirs = resolve_vault_dir_for_listing(&app);
 
-    if let Ok(entries) = std::fs::read_dir(&current_dir) {
+    for current_dir in search_dirs {
+        if !current_dir.exists() {
+            continue;
+        }
+        let entries = match std::fs::read_dir(&current_dir) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_dir() && path.extension().map(|e| e == "vault").unwrap_or(false) {
-                if let Ok(meta) = std::fs::metadata(&path) {
-                    let last_modified = meta.modified()
-                        .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs() as i64)
-                        .unwrap_or(0);
+            if !(path.is_dir() && path.extension().map(|e| e == "vault").unwrap_or(false)) {
+                continue;
+            }
 
-                    let meta_path = path.join("vault.meta.json");
-                    let entry_count = path.join("objects").read_dir().map(|d| d.count()).unwrap_or(0);
+            let path_str = path.to_string_lossy().to_string();
+            if !seen_paths.insert(path_str.clone()) {
+                continue;
+            }
 
-                    vaults.push(VaultListItem {
-                        name: path.file_stem().unwrap_or_default().to_string_lossy().to_string(),
-                        path: path.to_string_lossy().to_string(),
-                        entry_count,
-                        group_count: 0,
-                        last_modified,
-                    });
-                }
+            if let Ok(meta) = std::fs::metadata(&path) {
+                let last_modified = meta
+                    .modified()
+                    .map(|t| {
+                        t.duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_secs() as i64
+                    })
+                    .unwrap_or(0);
+
+                let entry_count = path
+                    .join("objects")
+                    .read_dir()
+                    .map(|d| d.count())
+                    .unwrap_or(0);
+
+                vaults.push(VaultListItem {
+                    name: path
+                        .file_stem()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string(),
+                    path: path_str,
+                    entry_count,
+                    group_count: 0,
+                    last_modified,
+                });
             }
         }
     }
+
+    vaults.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
 
     Ok(vaults)
 }

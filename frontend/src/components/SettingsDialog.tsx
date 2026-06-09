@@ -2,15 +2,16 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Lock, Fingerprint, Key, Smartphone, Globe, Shield } from 'lucide-react'
+import { Lock, Fingerprint, Key, Smartphone, Globe, Shield, HardDrive } from 'lucide-react'
 import { PasskeyManager } from './PasskeyManager'
+import { StorageSettings } from './StorageSettings'
 
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-type SettingsTab = 'security' | 'appearance' | 'sync' | 'about'
+type SettingsTab = 'security' | 'storage' | 'appearance' | 'sync' | 'about'
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { t } = useTranslation()
@@ -18,6 +19,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   const tabs = [
     { id: 'security' as SettingsTab, label: t('settings.security'), icon: Shield },
+    { id: 'storage' as SettingsTab, label: t('settings.storage'), icon: HardDrive },
     { id: 'appearance' as SettingsTab, label: t('settings.appearance'), icon: Smartphone },
     { id: 'sync' as SettingsTab, label: t('settings.sync'), icon: Globe },
     { id: 'about' as SettingsTab, label: t('settings.about'), icon: Lock },
@@ -53,6 +55,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           {/* Content */}
           <div className="flex-1 p-6 overflow-y-auto">
             {activeTab === 'security' && <SecuritySettings />}
+            {activeTab === 'storage' && <StorageSettings />}
             {activeTab === 'appearance' && <AppearanceSettings />}
             {activeTab === 'sync' && <SyncSettings />}
             {activeTab === 'about' && <AboutSettings />}

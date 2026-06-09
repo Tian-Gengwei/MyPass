@@ -29,14 +29,35 @@ const resources = {
         dontHave: "Don't have a vault? Create one",
         alreadyHave: 'Already have a vault? Unlock it',
         selectVault: 'Select a vault to unlock',
-        enterPassword: 'Enter your master password to unlock'
+        enterPassword: 'Enter your master password to unlock',
+        storageLocation: 'Storage Location',
+        storageLocationDesc: 'Default folder for storing new vaults',
+        useCustomLocation: 'Use custom location',
+        customLocation: 'Custom location',
+        customLocationPlaceholder: 'Select or enter a folder path',
+        browse: 'Browse...',
+        browseFolder: 'Choose folder',
+        locationReset: 'Reset to default',
+        locationUpdated: 'Storage location updated',
+        locationResetSuccess: 'Storage location reset to default',
+        useDefaultLocation: 'Use default location',
+        defaultLocationLabel: 'Default',
+        customLocationLabel: 'Custom',
+        locationHelp: 'Vaults are stored as subdirectories under the selected location. Each vault is a folder ending with .vault',
+        newVaultWillBeStoredAt: 'New vault will be stored at:',
+        willSaveToCustom: 'Save to custom location',
+        willSaveToDefault: 'Save to default location'
       },
       errors: {
         passwordMismatch: 'Passwords do not match',
         passwordLength: 'Password must be at least 8 characters',
         vaultNameRequired: 'Vault name is required',
         enterPassword: 'Please enter your password',
-        unknown: 'An error occurred'
+        unknown: 'An error occurred',
+        invalidPath: 'Invalid path',
+        vaultAlreadyExists: 'A vault with this name already exists at the target location',
+        pathNotAbsolute: 'Path must be absolute',
+        storageLocationFailed: 'Failed to update storage location'
       },
       menu: {
         file: 'File',
@@ -69,7 +90,13 @@ const resources = {
         warning: 'Warning',
         select: 'Select',
         import: 'Import',
-        export: 'Export'
+        export: 'Export',
+        remove: 'Remove',
+        loading: 'Loading...',
+        reset: 'Reset',
+        apply: 'Apply',
+        refresh: 'Refresh',
+        current: 'Current'
       },
       import: {
         title: 'Import Data',
@@ -121,7 +148,9 @@ const resources = {
         appearance: 'Appearance',
         sync: 'Sync',
         about: 'About',
-        general: 'General'
+        general: 'General',
+        storage: 'Storage',
+        storageDesc: 'Manage where vaults are stored on disk'
       },
       passkey: {
         title: 'Passkeys',
@@ -178,14 +207,35 @@ const resources = {
         dontHave: '没有金库？创建一个',
         alreadyHave: '已有金库？解锁它',
         selectVault: '选择要解锁的金库',
-        enterPassword: '输入您的主密码以解锁'
+        enterPassword: '输入您的主密码以解锁',
+        storageLocation: '存储位置',
+        storageLocationDesc: '用于存放新金库的默认文件夹',
+        useCustomLocation: '使用自定义位置',
+        customLocation: '自定义位置',
+        customLocationPlaceholder: '选择或输入文件夹路径',
+        browse: '浏览...',
+        browseFolder: '选择文件夹',
+        locationReset: '恢复默认',
+        locationUpdated: '存储位置已更新',
+        locationResetSuccess: '存储位置已恢复为默认值',
+        useDefaultLocation: '使用默认位置',
+        defaultLocationLabel: '默认',
+        customLocationLabel: '自定义',
+        locationHelp: '金库以子目录形式保存在所选位置下，每个金库是一个以 .vault 结尾的文件夹',
+        newVaultWillBeStoredAt: '新金库将保存在：',
+        willSaveToCustom: '保存到自定义位置',
+        willSaveToDefault: '保存到默认位置'
       },
       errors: {
         passwordMismatch: '密码不匹配',
         passwordLength: '密码至少需要8个字符',
         vaultNameRequired: '金库名称不能为空',
         enterPassword: '请输入密码',
-        unknown: '发生未知错误'
+        unknown: '发生未知错误',
+        invalidPath: '路径无效',
+        vaultAlreadyExists: '目标位置已存在同名金库',
+        pathNotAbsolute: '路径必须是绝对路径',
+        storageLocationFailed: '更新存储位置失败'
       },
       menu: {
         file: '文件',
@@ -218,7 +268,13 @@ const resources = {
         warning: '警告',
         select: '选择',
         import: '导入',
-        export: '导出'
+        export: '导出',
+        remove: '移除',
+        loading: '加载中...',
+        reset: '重置',
+        apply: '应用',
+        refresh: '刷新',
+        current: '当前'
       },
       import: {
         title: '导入数据',
@@ -270,7 +326,9 @@ const resources = {
         appearance: '外观',
         sync: '同步',
         about: '关于',
-        general: '通用'
+        general: '通用',
+        storage: '存储',
+        storageDesc: '管理金库在磁盘上的保存位置'
       },
       passkey: {
         title: '通行密钥',

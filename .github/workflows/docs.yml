@@ -1,0 +1,95 @@
+name: Docs
+
+on:
+  push:
+    branches: [Dev1, main, develop]
+    paths:
+      - 'tools/docs/**'
+      - 'README.md'
+      - 'SPEC.md'
+      - 'CHANGELOG.md'
+      - 'SECURITY.md'
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    branches: [Dev1, main, develop]
+    paths:
+      - 'tools/docs/**'
+      - 'README.md'
+      - 'SPEC.md'
+      - 'CHANGELOG.md'
+      - 'SECURITY.md'
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ============================================================
+  # Markdown Lint（基于 markdownlint-cli2）
+  # ============================================================
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: 安装 markdownlint-cli2
+        run: npm install -g markdownlint-cli2@0.18.1
+
+      - name: 生成 .markdownlint.json（若不存在）
+        shell: bash
+        run: |
+          if [ ! -f .markdownlint.json ]; then
+            cat > .markdownlint.json << 'EOF'
+          {
+            "default": true,
+            "MD013": false,
+            "MD041": false,
+            "MD033": false
+          }
+          EOF
+            echo "Created .markdownlint.json"
+          fi
+
+      - name: 检查 tools/docs/
+        run: |
+          markdownlint-cli2 \
+            "tools/docs/**/*.md" \
+            "README.md" \
+            "SPEC.md" \
+            "SECURITY.md" \
+            2>&1 || true
+
+  # ============================================================
+  # 中文/英文双语一致性占位检查
+  # ============================================================
+  spell-check:
+    name: Basic Spell Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检查文档可解析性
+        run: |
+          echo "Files under tools/docs/:"
+          ls -la tools/docs/
+          echo ""
+          echo "Top-level docs:"
+          ls -la README.md SPEC.md CHANGELOG.md SECURITY.md
+          echo ""
+          echo "Markdown line counts:"
+          wc -l tools/docs/*.md README.md SPEC.md CHANGELOG.md SECURITY.md

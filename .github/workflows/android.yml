@@ -1,0 +1,314 @@
+<<<<<<< Updated upstream
+name: Android Build (APK)
+
+on:
+  pull_request:
+    branches: [Dev1, main, develop]
+    paths:
+      - 'src-tauri/**'
+      - 'crates/**'
+      - 'frontend/**'
+      - '.github/workflows/android.yml'
+  push:
+    branches: [Dev1]
+    paths:
+      - 'src-tauri/**'
+      - 'crates/**'
+      - 'frontend/**'
+      - '.github/workflows/android.yml'
+=======
+name: Android Build
+
+on:
+  push:
+    branches: [Dev1, main, develop]
+    tags: ['v*']
+    paths:
+      - 'src-tauri/**'
+      - 'frontend/**'
+      - 'crates/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    branches: [Dev1, main, develop]
+>>>>>>> Stashed changes
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+<<<<<<< Updated upstream
+  NODE_VERSION: '20'
+  RUST_VERSION: stable
+  ANDROID_API_LEVEL: '34'
+  ANDROID_NDK_VERSION: '26.1.10909125'
+
+jobs:
+  android-apk:
+    name: Android APK (aarch64)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      ANDROID_NDK_ROOT: /opt/android-ndk/${{ env.ANDROID_NDK_VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup JDK 17
+=======
+  NODE_VERSION: '24'
+  RUST_VERSION: stable
+  ANDROID_API_LEVEL: '34'
+  NDK_VERSION: '26.1.10909125'
+
+jobs:
+  # ============================================================
+  # Android APK / AAB 构建
+  # ============================================================
+  android:
+    name: Android (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: aarch64
+            target: aarch64-linux-android
+            abi: arm64-v8a
+          - arch: armv7
+            target: armv7-linux-androideabi
+            abi: armeabi-v7a
+          - arch: x86_64
+            target: x86_64-linux-android
+            abi: x86_64
+
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java 17
+>>>>>>> Stashed changes
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+<<<<<<< Updated upstream
+      - name: Setup Android SDK (API ${{ env.ANDROID_API_LEVEL }}) + NDK ${{ env.ANDROID_NDK_VERSION }}
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-${{ env.ANDROID_API_LEVEL }},build-tools;34.0.0,ndk;${{ env.ANDROID_NDK_VERSION }},cmdline-tools;latest'
+
+      - name: Setup Rust + Android targets
+=======
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 安装 Build-Tools & Platform
+        run: |
+          sdkmanager --install "platforms;android-${{ env.ANDROID_API_LEVEL }}" 2>&1 | tail -3
+          sdkmanager --install "build-tools;34.0.0" 2>&1 | tail -3
+
+      - name: 设置 NDK 环境
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: 'src-tauri -> target'
+          cache-targets: ${{ matrix.target }}
+
+      - name: 前端构建
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund && npm run build
+
+      - name: 准备 Android 项目
+        working-directory: src-tauri
+        run: |
+          cargo tauri android init --ci --app-name "MyPass" --package-name "com.mypass.app" --target ${{ matrix.target }}
+
+      - name: 配置 NDK 链接
+        working-directory: src-tauri
+        run: |
+          # 在 .cargo/config.toml 中为 Android target 设置 NDK 工具链
+          mkdir -p .cargo
+          cat >> .cargo/config.toml << 'EOF'
+
+          [target.aarch64-linux-android]
+          linker = "/root/Library/Android/sdk/ndk/${{ env.NDK_VERSION }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang"
+          ar = "/root/Library/Android/sdk/ndk/${{ env.NDK_VERSION }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          EOF
+
+      - name: 构建 APK
+        working-directory: src-tauri
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+        run: |
+          cargo tauri android build --apk --target ${{ matrix.target }}
+
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: mypass-android-${{ matrix.arch }}
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+            src-tauri/target/${{ matrix.target }}/release/bundle/android/**/*.apk
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ============================================================
+  # Android AAB（Play Store 格式）— 仅在 release tag 时构建
+  # ============================================================
+  android-bundle:
+    name: Android AAB (Play Store)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: android
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 安装 Build-Tools
+        run: |
+          sdkmanager --install "platforms;android-${{ env.ANDROID_API_LEVEL }}" 2>&1 | tail -3
+          sdkmanager --install "build-tools;34.0.0" 2>&1 | tail -3
+
+      - name: 设置 NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+
+      - name: Setup Rust
+>>>>>>> Stashed changes
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+<<<<<<< Updated upstream
+          workspaces: src-tauri -> target
+          cache-targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Frontend build
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund --loglevel=error && npm run build -- --logLevel warn
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli@^2.0 --locked --profile release 2>&1 | tail -n 30
+
+      - name: Tauri Android init (idempotent)
+        working-directory: src-tauri
+        run: |
+          if [ -d "gen/android" ]; then
+            echo "gen/android exists"
+          else
+            cargo tauri android init --ci
+          fi
+
+      - name: Configure .cargo/config.toml for Android
+        working-directory: src-tauri
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml <<'EOF'
+          [target.aarch64-linux-android]
+          linker = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang"
+          ar     = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          [target.armv7-linux-androideabi]
+          linker = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi34-clang"
+          ar     = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          [target.x86_64-linux-android]
+          linker = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android34-clang"
+          ar     = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+          [build]
+          rustflags = ["-C", "strip=symbols"]
+          EOF
+
+      - name: Build APK
+        working-directory: src-tauri
+        run: cargo tauri android build --apk --release 2>&1 | tail -n 80
+
+      - name: List APK outputs
+        run: |
+          find src-tauri -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null || true
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyPass-Android-APK-ci
+          path: |
+            src-tauri/target/**/release/bundle/android/*.apk
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
+          retention-days: 30
+=======
+          workspaces: 'src-tauri -> target'
+
+      - name: 前端构建
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund && npm run build
+
+      - name: 构建 AAB（所有架构）
+        working-directory: src-tauri
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
+        run: |
+          cargo tauri android build --aab
+
+      - name: 上传 AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: mypass-android-aab
+          path: |
+            src-tauri/gen/android/app/build/outputs/bundle/**/*.aab
+          if-no-files-found: warn
+          retention-days: 90
+>>>>>>> Stashed changes

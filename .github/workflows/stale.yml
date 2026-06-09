@@ -1,0 +1,63 @@
+name: Stale
+
+on:
+  schedule:
+    # 每天 UTC 02:00
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  # ============================================================
+  # Stale 管理：标记 30 天无活动 issue/PR，7 天后关闭
+  # 豁免 dependencies / security 标签
+  # ============================================================
+  stale:
+    name: Mark & Close Stale
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Mark stale issues
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-stale: 30
+          days-before-close: 7
+          stale-issue-message: |
+            This issue has been auto-marked as stale because it has not had
+            any activity in 30 days. It will be closed in 7 days if no
+            further activity occurs. 如果仍然相关，请回复或重新打开。
+          stale-pr-message: |
+            This PR has been auto-marked as stale because it has not had
+            any activity in 30 days. It will be closed in 7 days if no
+            further activity occurs.
+          close-issue-message: |
+            This issue was closed due to inactivity. Please reopen if the
+            problem still exists.
+          close-pr-message: |
+            This PR was closed due to inactivity. Please reopen if you would
+            like to continue work.
+          exempt-issue-labels: dependencies,security,enhancement,pinned
+          exempt-pr-labels: dependencies,security,enhancement,pinned
+          only: issues
+          operations-per-run: 100
+
+      - name: Mark stale PRs
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-stale: 45
+          days-before-close: 14
+          stale-pr-message: |
+            This PR has been auto-marked as stale because it has not had
+            any activity in 45 days. It will be closed in 14 days if no
+            further activity occurs.
+          close-pr-message: |
+            This PR was closed due to inactivity. Please reopen if you would
+            like to continue work.
+          exempt-pr-labels: dependencies,security,enhancement,pinned
+          only: pulls
+          operations-per-run: 100

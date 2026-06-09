@@ -1,0 +1,652 @@
+<<<<<<< Updated upstream
+name: Release (exe + deb + apk)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*-*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: '发布版本（如 v0.1.0）'
+        required: true
+        default: 'v0.1.0'
+      draft:
+        description: '是否创建为 draft release'
+        required: false
+        default: 'true'
+
+# 不取消正在进行的 release 构建（避免半成品上传）
+=======
+name: Release Desktop
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.1.0)'
+        required: true
+        default: ''
+
+>>>>>>> Stashed changes
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+<<<<<<< Updated upstream
+  RUST_BACKTRACE: 1
+  NODE_VERSION: '20'
+  RUST_VERSION: 'stable'
+  ANDROID_API_LEVEL: '34'
+  ANDROID_NDK_VERSION: '26.1.10909125'
+
+jobs:
+  ######################################################################
+  # 阶段 0：统一版本信息（矩阵 job 共用单一数据源）
+  ######################################################################
+  set-version:
+    name: Set Version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      is_prerelease: ${{ steps.ver.outputs.is_prerelease }}
+      release_tag: ${{ steps.ver.outputs.release_tag }}
+    steps:
+      - name: 解析版本号
+        id: ver
+        shell: bash
+        run: |
+          # 优先使用 tag，否则使用 workflow_dispatch 输入，否则使用 Cargo.toml 中的 version
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            RAW_VERSION="${{ github.ref_name }}"
+          elif [[ -n "${{ github.event.inputs.version_tag }}" ]]; then
+            RAW_VERSION="${{ github.event.inputs.version_tag }}"
+          else
+            RAW_VERSION="v0.1.0"
+          fi
+          # 去掉前导 v（纯版本号）
+          VERSION="${RAW_VERSION#v}"
+          echo "release_tag=${RAW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          # 含 '-' 视为预发布（例如 v0.1.0-alpha.1）
+          if echo "$VERSION" | grep -qE '-(alpha|beta|rc|dev|pre|nightly|SNAPSHOT)'; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Parsed: tag=${RAW_VERSION}, version=${VERSION}, prerelease=${IS_PRERELEASE:-false}"
+
+  ######################################################################
+  # 阶段 1：矩阵并行构建桌面安装包（Windows exe + Linux deb）
+  #
+  # 同时触发，彼此独立，任一失败不阻塞其他平台
+  ######################################################################
+  build-desktop:
+    name: Build (${{ matrix.label }})
+    needs: [set-version]
+=======
+  NODE_VERSION: '24'
+  RUST_VERSION: stable
+
+jobs:
+  # ============================================================
+  # 桌面端多平台构建
+  # ============================================================
+  build:
+    name: Build (${{ matrix.label }})
+>>>>>>> Stashed changes
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+<<<<<<< Updated upstream
+          # ---------- Windows x86_64 → .exe / .msi ----------
+          - os: windows-latest
+            label: Windows-x86_64
+            target: x86_64-pc-windows-msvc
+            bundles: 'msi,nsis,app'
+            artifact_prefix: MyPass-Windows
+            bin_ext: '.exe'
+
+          # ---------- Linux x86_64 → .deb / .rpm / AppImage ----------
+          - os: ubuntu-22.04
+            label: Linux-x86_64
+            target: x86_64-unknown-linux-gnu
+            bundles: 'deb,rpm,appimage,app'
+            artifact_prefix: MyPass-Linux
+            bin_ext: ''
+
+          # ---------- macOS Apple Silicon ----------
+          - os: macos-latest
+            label: macOS-aarch64
+            target: aarch64-apple-darwin
+            bundles: 'dmg,app'
+            artifact_prefix: MyPass-macOS-aarch64
+            bin_ext: ''
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Rust ${{ env.RUST_VERSION }}
+=======
+          # macOS Intel
+          - os: macos-13
+            target: x86_64-apple-darwin
+            label: macOS-Intel
+            args: '--target x86_64-apple-darwin'
+          # macOS Apple Silicon
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            label: macOS-AppleSilicon
+            args: '--target aarch64-apple-darwin'
+          # Linux x86_64
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: Linux-x86_64
+            args: '--target x86_64-unknown-linux-gnu'
+          # Linux ARM64
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            label: Linux-ARM64
+            args: '--target aarch64-unknown-linux-gnu'
+          # Windows x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: Windows-x86_64
+            args: '--target x86_64-pc-windows-msvc'
+          # 注：Windows ARM64 (aarch64-pc-windows-msvc) 需要 GitHub Enterprise 计划
+          # 公开仓库暂不可用。CI 中由 linux-arm64 和 macOS AppleSilicon 覆盖 ARM 测试。
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Rust
+>>>>>>> Stashed changes
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.target }}
+<<<<<<< Updated upstream
+          components: rustfmt, clippy
+
+      - name: Cache cargo (workspace)
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: src-tauri -> target
+          cache-targets: ${{ matrix.target }}
+
+      # ============================================================
+      # Linux 专属依赖
+      # ============================================================
+      - name: Install Linux deps (webkit2gtk / openssl / etc.)
+        if: runner.os == 'Linux'
+        shell: bash
+=======
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: 'src-tauri -> target'
+          cache-targets: ${{ matrix.target }}
+
+      - name: 安装 Linux 系统依赖
+        if: runner.os == 'Linux'
+>>>>>>> Stashed changes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+<<<<<<< Updated upstream
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            liblzma-dev \
+            libbz2-dev \
+            patchelf \
+            file \
+            desktop-file-utils \
+            rpm \
+            fakeroot \
+            dpkg \
+            xdg-user-dirs
+          # AppImage 所需
+          sudo apt-get install -y libfuse2 || true
+
+      # ============================================================
+      # 前端构建（Tauri 依赖 frontend/dist）
+      # ============================================================
+      - name: Frontend — npm ci
+        working-directory: frontend
+        shell: bash
+        run: npm ci --no-audit --no-fund --loglevel=error
+
+      - name: Frontend — build
+        working-directory: frontend
+        shell: bash
+        run: npm run build -- --logLevel warn
+
+      # ============================================================
+      # 安装 Tauri CLI（用于 `cargo tauri build`）
+      # ============================================================
+      - name: Install Tauri CLI
+        shell: bash
+        run: |
+          cargo install tauri-cli@^2.0 --locked --profile release \
+            2>&1 | tail -n 30
+
+      # ============================================================
+      # 核心：cargo tauri build
+      #
+      # 说明：Tauri 2 的 `--bundles` 支持逗号分隔多格式，
+      # 每个平台在 matrix 中指定自己的 bundle 列表。
+      # ============================================================
+      - name: Tauri build (${{ matrix.bundles }})
+        working-directory: src-tauri
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          cargo tauri build \
+            --target ${{ matrix.target }} \
+            --bundles ${{ matrix.bundles }} \
+            --release \
+            2>&1 | tail -n 80
+
+      # ============================================================
+      # 产物清单（用于调试 / 后续 upload）
+      # ============================================================
+      - name: List build artifacts (debug)
+        shell: bash
+        run: |
+          echo "=== bundle dir ==="
+          ls -lhR src-tauri/target/${{ matrix.target }}/release/bundle/ 2>/dev/null || echo "bundle dir empty"
+
+      # ============================================================
+      # 上传每平台独立的安装包 —— 为了 release 阶段能精确选择
+      # ============================================================
+      - name: Upload Windows installer (.exe / .msi)
+        if: matrix.label == 'Windows-x86_64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-${{ needs.set-version.outputs.version }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+            src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload Linux packages (.deb / .rpm / AppImage)
+        if: matrix.label == 'Linux-x86_64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-${{ needs.set-version.outputs.version }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
+            src-tauri/target/${{ matrix.target }}/release/bundle/rpm/*.rpm
+            src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Upload macOS DMG
+        if: matrix.label == 'macOS-aarch64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_prefix }}-${{ needs.set-version.outputs.version }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
+          if-no-files-found: warn
+          retention-days: 90
+
+  ######################################################################
+  # 阶段 2：Android APK 构建（与桌面同时并行）
+  #
+  # 必须在 Ubuntu 上，配合 Android SDK + NDK；使用 Tauri 的
+  # `cargo tauri android build`
+  ######################################################################
+  build-android:
+    name: Build Android (APK)
+    needs: [set-version]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      ANDROID_HOME: /opt/android-sdk
+      ANDROID_NDK_ROOT: /opt/android-sdk/ndk/${{ env.ANDROID_NDK_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup JDK 17 (Android build requires JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-${{ env.ANDROID_API_LEVEL }},build-tools;34.0.0,ndk;${{ env.ANDROID_NDK_VERSION }},cmdline-tools;latest'
+
+      - name: Verify NDK path
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=${ANDROID_HOME}"
+          echo "ANDROID_NDK_ROOT=${ANDROID_NDK_ROOT}"
+          ls "$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/"*"/bin/clang" 2>/dev/null || echo "clang not found yet"
+
+      - name: Setup Rust ${{ env.RUST_VERSION }} + Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Cache cargo (Android)
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: src-tauri -> target
+          cache-targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      # ============================================================
+      # 前端构建（Android 需要同一份 frontend/dist）
+      # ============================================================
+      - name: Frontend — npm ci
+        working-directory: frontend
+        shell: bash
+        run: npm ci --no-audit --no-fund --loglevel=error
+
+      - name: Frontend — build
+        working-directory: frontend
+        shell: bash
+        run: npm run build -- --logLevel warn
+
+      - name: Install Tauri CLI
+        shell: bash
+        run: |
+          cargo install tauri-cli@^2.0 --locked --profile release \
+            2>&1 | tail -n 30
+
+      # ============================================================
+      # 首次构建前需要 `tauri android init` 来生成 gen/android 脚手架。
+      # 在 clean checkout 的机器上这是必需步骤，已存在时为幂等。
+      # ============================================================
+      - name: Tauri Android init
+        working-directory: src-tauri
+        shell: bash
+        run: |
+          if [ -d "gen/android" ]; then
+            echo "gen/android already exists, skipping init"
+          else
+            cargo tauri android init --ci
+          fi
+
+      # ============================================================
+      # 为 Rust Android target 配置 NDK 工具链（让 cc / rustc 找到 clang）
+      # ============================================================
+      - name: Configure .cargo/config.toml for Android
+        working-directory: src-tauri
+        shell: bash
+        run: |
+          mkdir -p .cargo
+          cat > .cargo/config.toml <<'EOF'
+          [target.aarch64-linux-android]
+          linker = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+          ar     = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+
+          [target.armv7-linux-androideabi]
+          linker = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_API_LEVEL}-clang"
+          ar     = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+
+          [target.x86_64-linux-android]
+          linker = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android${ANDROID_API_LEVEL}-clang"
+          ar     = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+
+          [target.i686-linux-android]
+          linker = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android${ANDROID_API_LEVEL}-clang"
+          ar     = "${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+
+          # 加速后续 C 编译（避免 Android NDK 里重复调用系统 cc）
+          [build]
+          rustflags = ["-C", "strip=symbols"]
+          EOF
+          cat .cargo/config.toml
+
+      # ============================================================
+      # 执行 APK 构建（Tauri 内部会调用 cargo + gradle）
+      # ============================================================
+      - name: Build Android APK
+        working-directory: src-tauri
+        shell: bash
+        run: |
+          cargo tauri android build --apk --release \
+            2>&1 | tail -n 100
+
+      - name: List APK outputs
+        shell: bash
+        run: |
+          echo "=== Android outputs ==="
+          find src-tauri/target -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null
+          find src-tauri/gen/android -name "*.apk" -type f -exec ls -lh {} \; 2>/dev/null
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyPass-Android-APK-${{ needs.set-version.outputs.version }}
+          path: |
+            src-tauri/target/**/release/bundle/android/*.apk
+            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: warn
+          retention-days: 90
+
+  ######################################################################
+  # 阶段 3：汇总 & 创建 GitHub Release（exe + deb + apk 同时上传）
+  ######################################################################
+  release:
+    name: Create GitHub Release
+    needs: [set-version, build-desktop, build-android]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+=======
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            file
+
+      - name: 安装 Tauri CLI
+        run: cargo install tauri-cli --version "^2.0" --locked
+
+      - name: 前端构建
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund && npm run build
+
+      - name: Tauri 构建
+        working-directory: src-tauri
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          WINDOWS_CERT_FILE: ${{ secrets.WINDOWS_CERT_FILE }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          cargo tauri build ${{ matrix.args }} --bundles app,dmg,msi,nsis,deb,rpm,appimage
+
+      - name: 重命名 Windows 安装包
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $staging = New-Item -ItemType Directory -Path "staging-${{ matrix.target }}" -Force
+          Copy-Item -Recurse "target/${{ matrix.target }}/release/bundle/*" $staging
+          # 统一命名
+          Get-ChildItem $staging -Recurse | Where-Object { $_.Name -match 'mypass-tauri' } | ForEach-Object {
+            $newName = $_.Name -replace 'mypass-tauri', 'MyPass'
+            Rename-Item -Path $_.FullName -NewName $newName -Force
+          }
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: mypass-${{ matrix.label }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/**
+            staging-${{ matrix.target }}/**
+          if-no-files-found: warn
+          retention-days: 30
+
+  # ============================================================
+  # macOS Universal Binary（合并 x86_64 + aarch64）
+  # ============================================================
+  macos-universal:
+    name: macOS Universal
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载 macOS Intel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mypass-macOS-Intel
+          path: macos-x86_64
+
+      - name: 下载 macOS AppleSilicon artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mypass-macOS-AppleSilicon
+          path: macos-aarch64
+
+      - name: 合并为 Universal Binary
+        run: |
+          mkdir -p macos-universal/MyPass.app
+          # 合并二进制
+          lipo -create \
+            macos-x86_64/MyPass.app/Contents/MacOS/MyPass \
+            macos-aarch64/MyPass.app/Contents/MacOS/MyPass \
+            -output macos-universal/MyPass.app/Contents/MacOS/MyPass
+          # 复制其他资源
+          cp -R macos-aarch64/MyPass.app/Contents/Resources macos-universal/MyPass.app/Contents/
+          cp -R macos-aarch64/MyPass.app/Contents/Info.plist macos-universal/MyPass.app/Contents/
+          echo "Universal binary created"
+
+      - name: 打包为 DMG
+        run: |
+          cd macos-universal
+          hdiutil create -volname MyPass -srcfolder MyPass.app -ov -format UDZO MyPass.dmg
+
+      - name: 上传 Universal
+        uses: actions/upload-artifact@v4
+        with:
+          name: mypass-macOS-Universal
+          path: macos-universal/MyPass.dmg
+          retention-days: 30
+
+  # ============================================================
+  # 发布到 GitHub Releases
+  # ============================================================
+  release:
+    name: GitHub Release
+    needs: [build, macos-universal]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+>>>>>>> Stashed changes
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+<<<<<<< Updated upstream
+      - name: Download all artifacts
+=======
+      - name: 下载所有 artifacts
+>>>>>>> Stashed changes
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+<<<<<<< Updated upstream
+      - name: Show artifact tree
+        shell: bash
+        run: |
+          echo "=== Artifacts layout ==="
+          ls -la artifacts/
+          echo ""
+          echo "=== Flattened file list ==="
+          find artifacts -type f -exec ls -lh {} \;
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.set-version.outputs.release_tag }}
+          name: MyPass ${{ needs.set-version.outputs.release_tag }}
+          prerelease: ${{ needs.set-version.outputs.is_prerelease }}
+          draft: ${{ github.event.inputs.draft == 'false' && fromJson('false') || fromJson('true') }}
+          generate_release_notes: true
+          files: |
+            artifacts/MyPass-Windows*/**/*.exe
+            artifacts/MyPass-Windows*/**/*.msi
+            artifacts/MyPass-Linux*/**/*.deb
+            artifacts/MyPass-Linux*/**/*.rpm
+            artifacts/MyPass-Linux*/**/*.AppImage
+            artifacts/MyPass-macOS*/**/*.dmg
+            artifacts/MyPass-Android-APK*/**/*.apk
+=======
+      - name: 显示下载内容
+        run: ls -la artifacts/
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 'MyPass ${{ github.ref_name }}'
+          draft: true
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.nsis
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+>>>>>>> Stashed changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,7 +3,7 @@
 mod commands;
 mod error;
 
-use commands::{vault, import, export, totp, security, webauthn, biometric, extension, pin, quickkey, sync};
+use commands::{vault, import, export, totp, security, webauthn, biometric, extension, pin, quickkey, sync, settings};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Android 平台日志初始化
@@ -43,6 +43,7 @@ fn main() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
         .manage(commands::pin::PinManagerState::default())
+        .manage(commands::settings::AppSettingsState::default())
         .invoke_handler(tauri::generate_handler![
             // Vault 命令
             vault::create_vault,
@@ -110,8 +111,23 @@ fn main() {
             sync::get_sync_status,
             sync::configure_sync,
             sync::test_sync_connection,
+            // 应用设置命令
+            settings::get_default_vault_dir,
+            settings::get_builtin_vault_dir,
+            settings::set_default_vault_dir,
+            settings::reset_default_vault_dir,
+            settings::get_app_settings,
+            settings::pick_vault_folder,
         ])
-        .setup(|_app| {
+        .setup(|app| {
+            // 启动时从磁盘加载设置到内存
+            let handle = app.handle().clone();
+            let loaded = commands::settings::load_settings_from_disk(&handle);
+            if let Some(state) = app.try_state::<commands::settings::AppSettingsState>() {
+                if let Ok(mut current) = state.0.lock() {
+                    *current = loaded;
+                }
+            }
             tracing::info!("MyPass setup complete");
             Ok(())
         })

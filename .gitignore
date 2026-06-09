@@ -9,3 +9,6 @@ frontend/node_modules/@babel/helper-compilation-targets/lib/debug.js.map
 /Dev1.vault
 /test1.vault
 target/.rustc_info.json
+/.clinerules
+/.clinerules
+.clinerules/00-core.md

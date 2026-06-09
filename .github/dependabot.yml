@@ -1,0 +1,63 @@
+version: 2
+updates:
+  # GitHub Actions 自身版本
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    commit-message:
+      prefix: 'ci'
+    labels:
+      - 'dependencies'
+      - 'ci'
+    groups:
+      actions-minor:
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+  # Cargo 依赖
+  - package-ecosystem: 'cargo'
+    directory: '/src-tauri'
+    schedule:
+      interval: 'weekly'
+      day: 'tuesday'
+    commit-message:
+      prefix: 'deps(rust)'
+    labels:
+      - 'dependencies'
+      - 'rust'
+    open-pull-requests-limit: 10
+    groups:
+      tauri:
+        patterns:
+          - 'tauri*'
+      serde:
+        patterns:
+          - 'serde*'
+
+  # npm 依赖
+  - package-ecosystem: 'npm'
+    directory: '/frontend'
+    schedule:
+      interval: 'weekly'
+      day: 'wednesday'
+    commit-message:
+      prefix: 'deps(frontend)'
+    labels:
+      - 'dependencies'
+      - 'frontend'
+    open-pull-requests-limit: 10
+    groups:
+      react:
+        patterns:
+          - 'react'
+          - '@types/react*'
+      ui:
+        patterns:
+          - '@radix-ui/*'
+          - 'lucide-react'
+          - 'framer-motion'

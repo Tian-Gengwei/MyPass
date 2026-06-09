@@ -14,6 +14,8 @@ import {
   ChevronRight,
   RefreshCw,
   Fingerprint,
+  FolderInput,
+  HardDrive,
 } from 'lucide-react'
 import { useVaultStore, type VaultItem } from '@/stores/vault'
 
@@ -27,22 +29,33 @@ export function VaultSelector({ onUnlock }: VaultSelectorProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [vaultName, setVaultName] = useState('')
+  const [customPath, setCustomPath] = useState('')
+  const [useCustomPath, setUseCustomPath] = useState(false)
+  const [isPicking, setIsPicking] = useState(false)
+  const [defaultDir, setDefaultDir] = useState('')
   const [selectedVault, setSelectedVault] = useState<VaultItem | null>(null)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [hasPasskey, setHasPasskey] = useState(false)
   const [isUsingPasskey, setIsUsingPasskey] = useState(false)
-  
+
   const vaults = useVaultStore((state) => state.vaults)
   const setVaults = useVaultStore((state) => state.setVaults)
   const setCurrentVaultPath = useVaultStore((state) => state.setCurrentVaultPath)
+  const defaultVaultDir = useVaultStore((state) => state.defaultVaultDir)
+  const setDefaultVaultDir = useVaultStore((state) => state.setDefaultVaultDir)
 
   const loadVaults = async () => {
     setIsRefreshing(true)
     try {
-      const result = await invoke('list_vaults') as VaultItem[]
+      const [result, currentDir] = await Promise.all([
+        invoke('list_vaults') as Promise<VaultItem[]>,
+        invoke<string>('get_default_vault_dir'),
+      ])
       setVaults(result)
+      setDefaultDir(currentDir)
+      setDefaultVaultDir(currentDir)
     } catch (err) {
       console.error('Failed to load vaults:', err)
     } finally {
@@ -53,6 +66,21 @@ export function VaultSelector({ onUnlock }: VaultSelectorProps) {
   useEffect(() => {
     loadVaults()
   }, [])
+
+  const handlePickCreateFolder = async () => {
+    setIsPicking(true)
+    try {
+      const selected = await invoke<string | null>('pick_vault_folder')
+      if (selected) {
+        setCustomPath(selected)
+        setUseCustomPath(true)
+      }
+    } catch (err) {
+      console.error('Failed to pick folder:', err)
+    } finally {
+      setIsPicking(false)
+    }
+  }
 
   const handleCreateVault = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,17 +98,24 @@ export function VaultSelector({ onUnlock }: VaultSelectorProps) {
       setError(t('errors.vaultNameRequired'))
       return
     }
+    if (useCustomPath && !customPath.trim()) {
+      setError(t('errors.invalidPath'))
+      return
+    }
 
     setIsLoading(true)
     try {
+      const path = useCustomPath && customPath.trim() ? customPath.trim() : null
       await invoke('create_vault', {
-        request: { password, name: vaultName.trim() }
+        request: { password, name: vaultName.trim(), path }
       })
       await loadVaults()
       setMode('select')
       setVaultName('')
       setPassword('')
       setConfirmPassword('')
+      setCustomPath('')
+      setUseCustomPath(false)
     } catch (err) {
       setError(String(err))
     } finally {
@@ -375,6 +410,49 @@ export function VaultSelector({ onUnlock }: VaultSelectorProps) {
                   className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 h-12 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
+              </div>
+
+              <div className="space-y-3 p-4 bg-white/5 border border-white/10 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-200 text-sm font-medium">
+                    <HardDrive className="h-4 w-4" />
+                    {t('vault.storageLocation')}
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useCustomPath}
+                      onChange={(e) => setUseCustomPath(e.target.checked)}
+                      className="rounded border-white/20"
+                    />
+                    {t('vault.useCustomLocation')}
+                  </label>
+                </div>
+
+                {!useCustomPath ? (
+                  <div className="text-xs text-slate-400 font-mono break-all p-2 bg-black/20 rounded">
+                    {defaultDir || '...'}
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={customPath}
+                      onChange={(e) => setCustomPath(e.target.value)}
+                      placeholder={t('vault.customLocationPlaceholder')}
+                      className="flex-1 bg-white/5 border-white/20 text-white placeholder:text-slate-500 text-sm font-mono"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePickCreateFolder}
+                      disabled={isPicking}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      <FolderInput className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {error && (

@@ -13,3 +13,4 @@ pub mod extension;
 pub mod pin;
 pub mod quickkey;
 pub mod webauthn;
+pub mod settings;

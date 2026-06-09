@@ -1,0 +1,63 @@
+name: Qodana Code Quality
+
+on:
+  push:
+    branches: [Dev1, main, develop]
+  pull_request:
+    branches: [Dev1, main, develop]
+  workflow_dispatch:
+  schedule:
+    # 每周日 UTC 03:00 跑一次
+    - cron: '0 3 * * 0'
+
+concurrency:
+  group: qodana-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # Qodana 静态分析（配置见仓库根 qodana.yaml）
+  # ============================================================
+  qodana:
+    name: Qodana (qodana.starter)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Run Qodana
+        uses: JetBrains/qodana-action@main
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+        with:
+          # 与 qodana.yaml 中 linter: jetbrains/qodana-<linter>:2026.1 对齐
+          image: jetbrains/qodana-jvm:2026.1
+          # 仅分析应用代码，移除构建产物
+          args: --baseline,qodana_baseline.json
+          # 把 SARIF 推送到 Security tab
+          upload-result: true
+          # PR 上自动评论
+          post-pr-comment: true
+
+      - name: 上传 Qodana 报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: qodana-report
+          path: |
+            qodana/
+            qodana.sarif.json
+          if-no-files-found: warn
+          retention-days: 14

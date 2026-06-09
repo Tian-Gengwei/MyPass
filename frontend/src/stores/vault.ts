@@ -43,6 +43,7 @@ interface VaultState {
   searchQuery: string
   vaults: VaultItem[]
   currentVaultPath: string | null
+  defaultVaultDir: string | null
 
   unlock: () => void
   lock: () => void
@@ -59,6 +60,7 @@ interface VaultState {
   setSearchQuery: (query: string) => void
   setVaults: (vaults: VaultItem[]) => void
   setCurrentVaultPath: (path: string | null) => void
+  setDefaultVaultDir: (path: string | null) => void
 }
 
 export const useVaultStore = create<VaultState>()(
@@ -72,6 +74,7 @@ export const useVaultStore = create<VaultState>()(
   searchQuery: '',
   vaults: [],
   currentVaultPath: null,
+  defaultVaultDir: null,
 
   unlock: () => set({ isUnlocked: true }),
   lock: () => set({
@@ -113,12 +116,14 @@ export const useVaultStore = create<VaultState>()(
 
   setVaults: (vaults) => set({ vaults }),
   setCurrentVaultPath: (path) => set({ currentVaultPath: path }),
+  setDefaultVaultDir: (path) => set({ defaultVaultDir: path }),
   }),
   {
     name: STORAGE_KEY,
     partialize: (state) => ({
       vaults: state.vaults,
       currentVaultPath: state.currentVaultPath,
+      defaultVaultDir: state.defaultVaultDir,
     }),
   }
 ))
