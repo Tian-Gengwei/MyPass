@@ -3,7 +3,7 @@
 mod commands;
 mod error;
 
-use commands::{vault, import, totp, security, webauthn, biometric, extension, pin, quickkey, sync};
+use commands::{vault, import, export, totp, security, webauthn, biometric, extension, pin, quickkey, sync};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Android 平台日志初始化
@@ -58,11 +58,17 @@ fn main() {
             vault::create_group,
             vault::delete_group,
             vault::search_entries,
+            vault::list_vaults,
             // 导入命令
             import::import_keepass,
             import::import_bitwarden,
+            import::import_bitwarden_csv,
             import::import_chrome_csv,
             import::get_supported_import_formats,
+            // 导出命令
+            export::export_csv,
+            export::export_json,
+            export::get_supported_export_formats,
             // TOTP 命令
             totp::generate_totp,
             totp::verify_totp,
@@ -74,9 +80,14 @@ fn main() {
             security::get_session_status,
             // WebAuthn 命令
             webauthn::webauthn_is_available,
-            webauthn::webauthn_authenticate,
-            webauthn::webauthn_register,
             webauthn::webauthn_get_supported_authenticators,
+            webauthn::webauthn_get_register_options,
+            webauthn::webauthn_complete_registration,
+            webauthn::webauthn_get_authenticate_options,
+            webauthn::webauthn_complete_authentication,
+            webauthn::webauthn_list_passkeys,
+            webauthn::webauthn_remove_passkey,
+            webauthn::webauthn_has_passkey,
             // 生物识别命令
             biometric::check_biometric_available,
             biometric::authenticate_biometric,

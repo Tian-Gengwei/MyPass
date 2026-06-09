@@ -1,4 +1,7 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+const STORAGE_KEY = 'mypass-vault-state'
 
 export interface Entry {
   id: string
@@ -23,6 +26,14 @@ export interface Group {
   version: number
 }
 
+export interface VaultItem {
+  name: string
+  path: string
+  entry_count: number
+  group_count: number
+  last_modified: number
+}
+
 interface VaultState {
   isUnlocked: boolean
   entries: Entry[]
@@ -30,6 +41,8 @@ interface VaultState {
   selectedEntryId: string | null
   selectedGroupId: string | null
   searchQuery: string
+  vaults: VaultItem[]
+  currentVaultPath: string | null
 
   unlock: () => void
   lock: () => void
@@ -44,15 +57,21 @@ interface VaultState {
   selectEntry: (id: string | null) => void
   selectGroup: (id: string | null) => void
   setSearchQuery: (query: string) => void
+  setVaults: (vaults: VaultItem[]) => void
+  setCurrentVaultPath: (path: string | null) => void
 }
 
-export const useVaultStore = create<VaultState>((set) => ({
+export const useVaultStore = create<VaultState>()(
+  persist(
+    (set) => ({
   isUnlocked: false,
   entries: [],
   groups: [],
   selectedEntryId: null,
   selectedGroupId: null,
   searchQuery: '',
+  vaults: [],
+  currentVaultPath: null,
 
   unlock: () => set({ isUnlocked: true }),
   lock: () => set({
@@ -91,6 +110,17 @@ export const useVaultStore = create<VaultState>((set) => ({
   selectEntry: (id) => set({ selectedEntryId: id }),
   selectGroup: (id) => set({ selectedGroupId: id }),
   setSearchQuery: (query) => set({ searchQuery: query }),
-}))
+
+  setVaults: (vaults) => set({ vaults }),
+  setCurrentVaultPath: (path) => set({ currentVaultPath: path }),
+  }),
+  {
+    name: STORAGE_KEY,
+    partialize: (state) => ({
+      vaults: state.vaults,
+      currentVaultPath: state.currentVaultPath,
+    }),
+  }
+))
 
 export const useSelectedGroup = () => useVaultStore((state) => state.selectedGroupId)

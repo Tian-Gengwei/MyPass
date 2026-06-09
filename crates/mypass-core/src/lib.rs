@@ -11,6 +11,7 @@ pub mod sync;
 pub mod auth;
 pub mod otp;
 pub mod import;
+pub mod export;
 pub mod platform;
 pub mod security;
 pub mod performance;

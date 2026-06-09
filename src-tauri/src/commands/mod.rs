@@ -5,6 +5,7 @@
 pub mod vault;
 pub mod sync;
 pub mod import;
+pub mod export;
 pub mod totp;
 pub mod security;
 pub mod biometric;

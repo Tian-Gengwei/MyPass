@@ -5,7 +5,9 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/mypass-core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src-tauri/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/mypass-core/tests" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/Dev1.vault" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
+      <excludeFolder url="file://$MODULE_DIR$/test1.vault" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -379,3 +379,51 @@ pub fn get_entry(id: String) -> Result<Option<Entry>, TauriError> {
 
     Ok(vault.get_entry(&id).cloned())
 }
+
+/// Vault 列表项信息
+#[derive(Serialize, Deserialize)]
+pub struct VaultListItem {
+    pub name: String,
+    pub path: String,
+    pub entry_count: usize,
+    pub group_count: usize,
+    pub last_modified: i64,
+}
+
+/// 获取所有 Vault 列表
+#[tauri::command]
+pub fn list_vaults() -> Result<Vec<VaultListItem>, TauriError> {
+    tracing::info!("Listing vaults");
+
+    let mut vaults = Vec::new();
+
+    // 搜索当前目录下的 .vault 目录
+    let current_dir = std::env::current_dir()
+        .map_err(|e| TauriError::InvalidPath(e.to_string()))?;
+
+    if let Ok(entries) = std::fs::read_dir(&current_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() && path.extension().map(|e| e == "vault").unwrap_or(false) {
+                if let Ok(meta) = std::fs::metadata(&path) {
+                    let last_modified = meta.modified()
+                        .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_secs() as i64)
+                        .unwrap_or(0);
+
+                    let meta_path = path.join("vault.meta.json");
+                    let entry_count = path.join("objects").read_dir().map(|d| d.count()).unwrap_or(0);
+
+                    vaults.push(VaultListItem {
+                        name: path.file_stem().unwrap_or_default().to_string_lossy().to_string(),
+                        path: path.to_string_lossy().to_string(),
+                        entry_count,
+                        group_count: 0,
+                        last_modified,
+                    });
+                }
+            }
+        }
+    }
+
+    Ok(vaults)
+}

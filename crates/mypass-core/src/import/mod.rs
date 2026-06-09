@@ -15,7 +15,7 @@ pub mod edge;
 pub mod chrome;
 
 pub use keepass::KeepassImporter;
-pub use bitwarden::BitwardenImporter;
+pub use bitwarden::{BitwardenImporter, BitwardenCsvImporter};
 pub use edge::EdgeImporter;
 pub use chrome::ChromeCsvImporter;
 

@@ -17,6 +17,8 @@ tokio.workspace = true
 anyhow.workspace = true
 sha2.workspace = true
 hex.workspace = true
+rand = "0.8"
+base64 = "0.22"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

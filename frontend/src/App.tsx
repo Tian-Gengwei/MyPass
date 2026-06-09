@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { VaultGate } from '@/components/VaultGate'
+import { VaultSelector } from '@/components/VaultSelector'
 import { MainLayout } from '@/components/MainLayout'
 import { ToastContainer } from '@/components/ToastContainer'
 import { useVaultStore } from '@/stores/vault'
@@ -27,7 +27,7 @@ function App() {
       {isUnlocked ? (
         <MainLayout onLock={lock} />
       ) : (
-        <VaultGate onUnlock={unlock} />
+        <VaultSelector onUnlock={unlock} />
       )}
       <ToastContainer />
     </div>
