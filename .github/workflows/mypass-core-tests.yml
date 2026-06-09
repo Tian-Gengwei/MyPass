@@ -1,0 +1,105 @@
+name: MyPass Core Tests
+
+on:
+  push:
+    branches: [Dev1, main, develop]
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/mypass-core-tests.yml'
+  pull_request:
+    branches: [Dev1, main, develop]
+    paths:
+      - 'crates/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/mypass-core-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: mypass-core-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: short
+  RUST_VERSION: stable
+
+jobs:
+  # ============================================================
+  # mypass-core workspace 级别集成测试
+  # ============================================================
+  integration-tests:
+    name: Integration Tests (Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry & target
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: 'crates/mypass-core -> target'
+
+      - name: 安装 Linux 系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: 编译 + 集成测试（含 doctest）
+        working-directory: crates/mypass-core
+        run: |
+          cargo test --workspace --locked --all-features \
+            -- --nocapture --test-threads=1
+
+      - name: 单独跑 mypass-core 集成测试
+        working-directory: crates/mypass-core
+        run: |
+          cargo test --test vault_lifecycle_test --locked -- --nocapture
+
+  # ============================================================
+  # MSVC（Windows）烟雾测试，保证 Windows 上也能编译
+  # ============================================================
+  windows-smoke:
+    name: Windows Smoke (${{ matrix.target }})
+    needs: integration-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          workspaces: 'crates/mypass-core -> target'
+          cache-targets: ${{ matrix.target }}
+
+      - name: cargo check
+        working-directory: crates/mypass-core
+        run: |
+          cargo check --workspace --locked --target ${{ matrix.target }} --all-features

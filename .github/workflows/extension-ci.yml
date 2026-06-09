@@ -1,0 +1,117 @@
+name: Browser Extension CI
+
+on:
+  push:
+    branches: [Dev1, main, develop]
+    paths:
+      - 'extension/**'
+      - 'extensions/**'
+      - '.github/workflows/extension-ci.yml'
+  pull_request:
+    branches: [Dev1, main, develop]
+    paths:
+      - 'extension/**'
+      - 'extensions/**'
+      - '.github/workflows/extension-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: extension-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  # ============================================================
+  # 原生 MV2 扩展 (`extension/`)
+  # ============================================================
+  native-extension:
+    name: Native Extension (extension/)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript 类型检查
+        run: npx tsc --noEmit
+
+      - name: 构建扩展
+        run: npm run build
+
+      - name: 上传扩展制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: mypass-extension-native
+          path: extension/.output
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ============================================================
+  # WXT 框架扩展 (`extensions/wxt/`)
+  # ============================================================
+  wxt-extension:
+    name: WXT Extension (extensions/wxt/)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: extensions/wxt
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: extensions/wxt/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: TypeScript 类型检查
+        run: npx tsc --noEmit
+
+      - name: 构建扩展
+        run: npm run build
+
+      - name: 上传 WXT 扩展制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: mypass-extension-wxt
+          path: extensions/wxt/.output
+          if-no-files-found: warn
+          retention-days: 14
+
+  # ============================================================
+  # manifest 校验（双轨通用）
+  # ============================================================
+  manifest-validate:
+    name: Manifest Validate
+    needs: [native-extension, wxt-extension]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 校验 MV2 manifest
+        run: |
+          python3 -c "import json,sys; json.load(open('extension/manifest.json')); print('[OK] extension/manifest.json')"
+
+      - name: 校验 WXT manifest
+        run: |
+          python3 -c "import json,sys; json.load(open('extensions/wxt/package.json')); print('[OK] extensions/wxt/package.json')"
